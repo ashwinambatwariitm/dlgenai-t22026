@@ -1,0 +1,16 @@
+# Downloaded and fine-tuned model weights - large, regenerable, never commit
+models/*
+!models/.gitkeep
+
+# Kaggle dataset files
+dataset/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Hugging Face cache
+.cache/
