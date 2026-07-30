@@ -118,23 +118,43 @@ On the competition's own hidden test set this model scores **MAP@3 0.74937**
 split. The submission it produced differed from this model's raw predictions on
 only 1 of 500 questions, so 0.74937 is effectively this model's score.
 
-That ~0.13 gap is not a bug, and it is the most interesting property of this
-dataset. The two numbers measure genuinely different things:
+That ~0.13 gap is not a bug - it is the most interesting property of this
+dataset, and the two numbers measure genuinely different things.
 
-| split | near-duplicates with train | what it measures | score |
-|---|---|---|---|
-| our validation split | **0%** (removed by design) | generalisation to unseen questions | 0.8829 |
-| competition test set | **93.4%** | performance on a re-sample of the training pool | 0.74937 |
+The cause is that **half the competition test set is literally present in the
+training data.** Comparing the 500 test questions against `train.csv` by exact
+string match:
 
-Because the test set is overwhelmingly made of near-duplicates of training
-questions, it rewards memorisation, while the validation split above deliberately
-removes exactly that advantage. Consequently the model with the best validation
-score is **not** the best leaderboard model: a simple retrieval baseline
-(nearest training question, copy its answer text) scores 0.75436 on the same
-leaderboard despite only 0.8208 on validation.
+| relationship to train.csv | share of test | recoverable by memorisation? |
+|---|---|---|
+| **identical question** (same prompt *and* same 5 options) | **51.4%** (257/500) | yes |
+| same prompt, different options | 2.2% (11/500) | partly |
+| different prompt, same option set | 38.8% (194/500) | no - a different question |
+| no match at all | 7.6% (38/500) | no |
 
-Treat 0.8829 as the honest estimate of generalisation and 0.74937 as the
-realistic expectation on data drawn like the competition's test set.
+All 257 identical twins carry a single consistent answer, so that half of the
+test set is answerable by lookup alone. The 38.8% that merely reuse an option set
+are genuinely different questions - the dataset recycles distractor pools across
+many prompts, which makes naive embedding-similarity matching look far more
+promising than it is.
+
+This composition explains the validation/leaderboard gap. Our validation split
+removes near-duplicates by design (0%), so it measures reasoning on unseen
+questions. The test set is ~51% recall and ~49% reasoning, so a leaderboard score
+blends the two. It also explains why the model with the best validation score is
+**not** the best leaderboard model: a simple retrieval baseline (nearest training
+question, copy its answer text) scores 0.75436 despite only 0.8208 on validation.
+
+If one assumes the memorisable half is answered essentially perfectly, the
+implied MAP@3 on the remaining ~49% is roughly **0.48**, against a
+random-guessing baseline of 0.3937 - i.e. only modestly above chance on
+genuinely novel questions. That figure is an inference from the leaderboard
+score and the composition above, not a directly measured value, since the test
+labels are not public.
+
+Treat 0.8829 as the optimistic estimate of generalisation, 0.74937 as the
+observed score on the competition's test distribution, and expect noticeably
+weaker performance on questions unlike this dataset.
 
 ## Limitations
 
@@ -144,6 +164,10 @@ realistic expectation on data drawn like the competition's test set.
   questions there are only 313 distinct correct-answer texts, and none of them
   ever appears as a wrong option. A model trained on it can partly learn "which
   text looks like an answer" instead of genuinely reasoning about the question.
-  This is why any validation split drawn from this data is optimistic, and why
-  held-out leaderboard performance is meaningfully lower than local validation.
+  This is why any validation split drawn from this data is optimistic.
+- **Roughly half of this model's leaderboard score is recall, not reasoning.**
+  51.4% of the competition test set is an exact duplicate of a training question
+  (see Evaluation). Do not read 0.74937 as an estimate of reasoning ability on
+  new questions - the evidence suggests that is closer to 0.48 MAP@3, against a
+  0.3937 random baseline.
 - Always exactly **5 options**; the code above assumes that shape.

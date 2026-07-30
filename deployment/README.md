@@ -40,9 +40,10 @@ the split, so no validation question has a near-identical twin in training.
 Those numbers therefore measure genuine generalisation rather than memorisation.
 
 On the competition's hidden test set the same model scores **MAP@3 0.74937**. The
-gap is expected rather than a bug: 93.4% of the test questions have a near-duplicate
-in the training data, so that set rewards memorisation, while the validation split
-above deliberately removes exactly that advantage.
+gap is expected rather than a bug: **51.4% of the test questions are exact
+duplicates of training questions** (same prompt and same five options), so that
+score blends recall with reasoning, while the validation split above deliberately
+removes near-duplicates and measures reasoning alone.
 
 ## How it scores options
 
