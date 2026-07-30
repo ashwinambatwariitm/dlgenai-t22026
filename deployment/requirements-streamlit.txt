@@ -1,6 +1,6 @@
-# CPU-only torch keeps the install small enough for a free hosting tier
-# (the default wheel bundles CUDA and is several GB).
+# CPU-only torch: the default PyPI wheel bundles CUDA and is several GB,
+# which blows the free tier's install limits.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
-transformers==4.44.2
+transformers
 streamlit

@@ -110,7 +110,11 @@ if st.button("Solve", type="primary"):
             st.progress(float(probs[i]), text=f"{float(probs[i]):.1%}")
 
 st.divider()
+# Deliberately does not name the backbone: the deployed checkpoint can be swapped
+# (BERT / RoBERTa / DeBERTa) without this line going stale. The model card on the
+# Hub carries the specific architecture and scores.
 st.caption(
-    f"Model: [{MODEL_ID}](https://huggingface.co/{MODEL_ID}) - roberta-base with a "
-    "multiple-choice head, fully fine-tuned on 2,000 questions."
+    f"Model: [{MODEL_ID}](https://huggingface.co/{MODEL_ID}) - a transformer with a "
+    "multiple-choice head, fully fine-tuned on 2,000 questions. "
+    "See the model card for the backbone, training recipe and evaluation."
 )

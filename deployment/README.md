@@ -18,7 +18,7 @@ options. Built for the Smart MCQ Solver Challenge.
 
 A transformer with a **multiple-choice head**, fully fine-tuned on 2,000
 labelled questions, and selected as the best of the models compared in the
-project notebook. The currently deployed checkpoint is `roberta-base`;
+project notebook. The currently deployed checkpoint is `bert-base-uncased`;
 the app loads whatever checkpoint the model repo holds, so swapping in a
 different encoder needs no code change.
 
@@ -26,8 +26,8 @@ Validation scores from the notebook's model comparison:
 
 | model | validation MAP@3 |
 |---|---|
-| **Fine-tuned transformer (deployed here)** | **0.8371** |
-| Ensemble (weighted Borda) | 0.8367 |
+| **`bert-base-uncased` fine-tuned (deployed here)** | **0.8829** |
+| Ensemble (weighted Borda) | 0.8579 |
 | From-scratch BiLSTM | 0.8213 |
 | RAG + Qwen2.5-0.5B | 0.8208 |
 | TF-IDF + Logistic Regression | 0.7733 |
@@ -38,6 +38,11 @@ Validation uses a **leakage-free split**: near-duplicate questions are clustered
 by sentence-embedding similarity and whole clusters are assigned to one side of
 the split, so no validation question has a near-identical twin in training.
 Those numbers therefore measure genuine generalisation rather than memorisation.
+
+On the competition's hidden test set the same model scores **MAP@3 0.74937**. The
+gap is expected rather than a bug: 93.4% of the test questions have a near-duplicate
+in the training data, so that set rewards memorisation, while the validation split
+above deliberately removes exactly that advantage.
 
 ## How it scores options
 
