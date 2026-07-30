@@ -20,3 +20,6 @@ __pycache__/
 !.env.example
 *.key
 secrets.json
+
+# Windows "mark of the web" artifacts created when downloading files in WSL
+*:Zone.Identifier

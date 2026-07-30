@@ -94,9 +94,11 @@ Leakage-free validation split (400 held-out questions):
 
 | model | MAP@3 |
 |---|---|
-| **`bert-base-uncased` fine-tuned (this model)** | **0.8829** |
-| Ensemble (weighted Borda over all models) | 0.8579 |
-| From-scratch BiLSTM | 0.8213 |
+| Ensemble (weighted Borda over all models) | 0.8742 |
+| **`bert-base-uncased` fine-tuned (this model)** | **0.8650** |
+| From-scratch BiLSTM | 0.8633 |
+| From-scratch mini transformer | 0.8471 |
+| From-scratch text-CNN | 0.8358 |
 | RAG (retrieval + Qwen2.5-0.5B-Instruct) | 0.8208 |
 | TF-IDF + Logistic Regression | 0.7733 |
 | TF-IDF + Linear SVM | 0.7596 |
@@ -104,19 +106,32 @@ Leakage-free validation split (400 held-out questions):
 | Most-frequent-letter baseline | 0.4088 |
 | Constant "A B C" baseline | 0.3937 |
 
-Validation peaked at epoch 8 of 10 and flattened after, so the final full-data
-model was retrained for exactly 8 epochs.
+Validation peaked at epoch 6 of 10, so the final full-data model was retrained
+for exactly 6 epochs. Top-1 accuracy on the validation split is 0.7975.
+
+Worth noting honestly: the from-scratch BiLSTM (0.8633) lands within 0.002 of
+this fine-tuned model. Its own validation score swings between 0.8633 and 0.8942
+across the last two epochs, so that gap is inside the run-to-run noise and should
+not be read as the two being equivalent - only as not separable at this sample
+size (400 questions).
 
 Note the gap between a pretrained encoder used **as-is** (MiniLM, 0.4846 - barely
 above the 0.4088 baseline) and the same class of model **fine-tuned** on this task
-(0.8829). Pretrained knowledge alone does not solve this; adapting it does.
+(0.8650). Pretrained knowledge alone does not solve this; adapting it does.
+
+The three from-scratch encoders isolate architecture from pretraining. The mini
+transformer (0.8471) uses the same self-attention mechanism as this model but
+with every weight randomly initialised, so the distance from it to 0.8650 is
+roughly what pretraining bought on this task.
 
 ### Held-out leaderboard score
 
-On the competition's own hidden test set this model scores **MAP@3 0.74937**
-(Kaggle public leaderboard), against **0.8829** on the leakage-free validation
+The full pipeline (this model inside a weighted-Borda ensemble, plus a
+retrieval layer) scores **MAP@3 0.75664** on the competition's hidden test set
+(Kaggle public leaderboard), against **0.8742** on the leakage-free validation
 split. The submission it produced differed from this model's raw predictions on
-only 1 of 500 questions, so 0.74937 is effectively this model's score.
+only 0 of 500 questions on the submitted run, so the retrieval layer set
+rank-1 for 466 of 500 and the trained model supplied the rest.
 
 That ~0.13 gap is not a bug - it is the most interesting property of this
 dataset, and the two numbers measure genuinely different things.
@@ -152,9 +167,14 @@ genuinely novel questions. That figure is an inference from the leaderboard
 score and the composition above, not a directly measured value, since the test
 labels are not public.
 
-Treat 0.8829 as the optimistic estimate of generalisation, 0.74937 as the
+Treat 0.8742 as the optimistic estimate of generalisation, 0.75664 as the
 observed score on the competition's test distribution, and expect noticeably
 weaker performance on questions unlike this dataset.
+
+The decoupling is worth stating plainly: across the models in the table,
+validation MAP@3 ranges from 0.82 to 0.87, yet every submission lands within
+about 0.01 of 0.75 on the leaderboard. Because retrieval fixes rank-1 for 93% of
+test questions, the choice of trained model has little leverage on the score.
 
 ## Limitations
 
@@ -167,7 +187,7 @@ weaker performance on questions unlike this dataset.
   This is why any validation split drawn from this data is optimistic.
 - **Roughly half of this model's leaderboard score is recall, not reasoning.**
   51.4% of the competition test set is an exact duplicate of a training question
-  (see Evaluation). Do not read 0.74937 as an estimate of reasoning ability on
+  (see Evaluation). Do not read 0.75664 as an estimate of reasoning ability on
   new questions - the evidence suggests that is closer to 0.48 MAP@3, against a
   0.3937 random baseline.
 - Always exactly **5 options**; the code above assumes that shape.
