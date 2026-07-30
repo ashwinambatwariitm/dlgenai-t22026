@@ -14,3 +14,9 @@ __pycache__/
 
 # Hugging Face cache
 .cache/
+# Secrets - API keys and tokens. NEVER commit these.
+.env
+.env.*
+!.env.example
+*.key
+secrets.json
