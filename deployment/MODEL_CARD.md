@@ -153,12 +153,12 @@ string match:
 
 | relationship to train.csv | share of test | recoverable by memorisation? |
 |---|---|---|
-| **identical question** (same prompt *and* same 5 options) | **51.4%** (257/500) | yes |
-| same prompt, different options | 2.2% (11/500) | partly |
+| **identical question** (same prompt *and* same 5 options) | **52.8%** (264/500) | yes |
+| same prompt, different options | 0.8% (4/500) | partly |
 | different prompt, same option set | 38.8% (194/500) | no - a different question |
 | no match at all | 7.6% (38/500) | no |
 
-All 257 identical twins carry a single consistent answer, so that half of the
+All 264 identical twins carry a single consistent answer, so that half of the
 test set is answerable by lookup alone. The 38.8% that merely reuse an option set
 are genuinely different questions - the dataset recycles distractor pools across
 many prompts, which makes naive embedding-similarity matching look far more
@@ -166,13 +166,13 @@ promising than it is.
 
 This composition explains the validation/leaderboard gap. Our validation split
 removes near-duplicates by design (0%), so it measures reasoning on unseen
-questions. The test set is ~51% recall and ~49% reasoning, so a leaderboard score
+questions. The test set is ~53% recall and ~47% reasoning, so a leaderboard score
 blends the two. It also explains why the model with the best validation score is
 **not** the best leaderboard model: a simple retrieval baseline (nearest training
 question, copy its answer text) scores 0.75436 despite only 0.8208 on validation.
 
 If one assumes the memorisable half is answered essentially perfectly, the
-implied MAP@3 on the remaining ~49% is roughly **0.50**, against a
+implied MAP@3 on the remaining ~47% is roughly **0.48**, against a
 random-guessing baseline of 0.3937 - i.e. only modestly above chance on
 genuinely novel questions. That figure is an inference from the leaderboard
 score and the composition above, not a directly measured value, since the test
@@ -199,8 +199,8 @@ the leaderboard fell 0.0027.
   text looks like an answer" instead of genuinely reasoning about the question.
   This is why any validation split drawn from this data is optimistic.
 - **Roughly half of this model's leaderboard score is recall, not reasoning.**
-  51.4% of the competition test set is an exact duplicate of a training question
+  52.8% of the competition test set is an exact duplicate of a training question
   (see Evaluation). Do not read 0.75664 as an estimate of reasoning ability on
-  new questions - the evidence suggests that is closer to 0.50 MAP@3, against a
+  new questions - the evidence suggests that is closer to 0.48 MAP@3, against a
   0.3937 random baseline.
 - Always exactly **5 options**; the code above assumes that shape.
