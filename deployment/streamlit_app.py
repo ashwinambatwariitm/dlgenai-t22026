@@ -11,6 +11,8 @@ independent of the order the options are listed in.
 Run locally:  streamlit run streamlit_app.py
 """
 
+import random
+
 import streamlit as st
 import torch
 from transformers import AutoModelForMultipleChoice, AutoTokenizer
@@ -58,27 +60,148 @@ st.markdown(
     "the options are listed in."
 )
 
-EXAMPLE_PROMPT = (
-    "Pick the best possible answer: What is Martin Heidegger's view on the "
-    "relationship between time and human existence? among the listed options."
-)
-EXAMPLE_OPTIONS = [
-    "Martin Heidegger believes that humans exist within a time continuum that is "
-    "infinite and does not have a defined beginning or end.",
-    "Martin Heidegger believes that humans do not exist inside time, but that they "
-    "are time. The relationship to the past is a present awareness of having been.",
-    "Martin Heidegger does not believe in the existence of time or that it has any "
-    "effect on human consciousness.",
-    "Martin Heidegger believes that the relationship between time and human "
-    "existence is cyclical and the future is predetermined.",
-    "Martin Heidegger believes that time is an illusion, and the past, present and "
-    "future are all happening simultaneously.",
+# Five worked examples taken VERBATIM from train.csv - prompt and all five
+# options exactly as the model saw them in training, one per correct answer
+# letter (A to E). The exact wording matters: abbreviating an option costs the
+# model the answer-text signal it partly relies on, and confidence drops even
+# when the ranking stays right. Covering all five letters also lets a reviewer
+# check the model is not simply favouring one position.
+EXAMPLES = [
+    {
+        "id": 5,
+        "answer": "A",
+        "prompt": "Identify the correct statement: What is the concept of simultaneity "
+            "in Einstein's book, Relativity? carefully.",
+        "options": [
+            "Simultaneity is relative, meaning that two events that appear "
+            "simultaneous to an observer in a particular inertial reference frame "
+            "need not be judged as simultaneous by a second observer in a "
+            "different inertial frame of reference.",
+            "Simultaneity is relative, meaning that two events that appear "
+            "simultaneous to an observer in a particular inertial reference frame "
+            "will always be judged as simultaneous by a second observer in a "
+            "different inertial frame of reference.",
+            "Simultaneity is absolute, meaning that two events that appear "
+            "simultaneous to an observer in a particular inertial reference frame "
+            "will always be judged as simultaneous by a second observer in a "
+            "different inertial frame of reference.",
+            "Simultaneity is a concept that applies only to Newtonian theories "
+            "and not to relativistic theories.",
+            "Simultaneity is a concept that applies only to relativistic theories "
+            "and not to Newtonian theories.",
+        ],
+    },
+    {
+        "id": 12,
+        "answer": "B",
+        "prompt": "Choose the correct answer: What is the throttling process, and why "
+            "is it essential? from the following choices.",
+        "options": [
+            "The throttling process is a steady flow of a fluid through a flow "
+            "resistance, such as a valve or porous plug, and is responsible for "
+            "the pressure raise in domestic refrigerators. This process is key "
+            "because it is at the heart of the refrigeration cycle.",
+            "The throttling process is a steady adiabatic flow of a fluid through "
+            "a flow resistance, such as a valve or porous plug, and is "
+            "responsible for the temperature drop in domestic refrigerators. This "
+            "process is key because it is at the heart of the refrigeration "
+            "cycle.",
+            "The throttling process is a steady adiabatic flow of a fluid through "
+            "a flow resistance, such as a valve or porous plug, and is "
+            "responsible for the pressure drop in domestic refrigerators. This "
+            "process is key because it is at the heart of the refrigeration "
+            "cycle.",
+            "The throttling process is a steady flow of a fluid through a flow "
+            "resistance, such as a valve or porous plug, and is responsible for "
+            "the temperature raise in domestic refrigerators. This process is key "
+            "because it is at the heart of the refrigeration cycle.",
+            "The throttling process is a steady adiabatic flow of a fluid through "
+            "a flow resistance, such as a valve or porous plug, and is "
+            "responsible for the temperature drop in domestic refrigerators. This "
+            "process is not significant because it is not used in the "
+            "refrigeration cycle.",
+        ],
+    },
+    {
+        "id": 11,
+        "answer": "C",
+        "prompt": "Select the most accurate option: What is the Peierls bracket in "
+            "canonical quantization? based on the given context.",
+        "options": [
+            "The Peierls bracket is a mathematical symbol used to represent the "
+            "Poisson algebra in the canonical quantization approach.",
+            "The Peierls bracket is a mathematical tool used to generate the "
+            "Hamiltonian in the canonical quantization technique.",
+            "The Peierls bracket is a Poisson bracket derived from the action in "
+            "the canonical quantization procedure that converts the quotient "
+            "algebra into a Poisson algebra.",
+            "The Peierls bracket is a mathematical symbol used to represent the "
+            "quotient algebra in the canonical quantization approach.",
+            "The Peierls bracket is a mathematical tool used to generate the "
+            "Euler-Lagrange equations in the canonical quantization technique.",
+        ],
+    },
+    {
+        "id": 28,
+        "answer": "D",
+        "prompt": "Identify the correct statement: What is a uniform tiling in the "
+            "hyperbolic plane? based on the given context.",
+        "options": [
+            "A uniform tiling in the hyperbolic plane is a tessellation of the "
+            "hyperbolic plane with irregular polygons as faces. These are not "
+            "vertex-transitive and isogonal.",
+            "A uniform tiling in the hyperbolic plane is a tessellation of the "
+            "hyperbolic plane with regular polygons as faces. These are not "
+            "vertex-transitive and isogonal.",
+            "A uniform tiling in the hyperbolic plane is a tessellation of the "
+            "hyperbolic plane with irregular polygons as faces. These are "
+            "vertex-transitive and isogonal.",
+            "A uniform tiling in the hyperbolic plane is an edge-to-edge filling "
+            "of the hyperbolic plane, with regular polygons as faces. These are "
+            "vertex-transitive and isogonal.",
+            "A uniform tiling in the hyperbolic plane is an edge-to-edge filling "
+            "of the hyperbolic plane, with irregular polygons as faces. These are "
+            "vertex-transitive and isogonal.",
+        ],
+    },
+    {
+        "id": 7,
+        "answer": "E",
+        "prompt": "Which of the following is correct? What is a \"coffee ring\" in "
+            "physics? among the listed options.",
+        "options": [
+            "A type of coffee that is made by boiling coffee grounds in water.",
+            "A pattern left by a particle-laden liquid after it is spilled, named "
+            "for the characteristic ring-like deposit along the perimeter of a "
+            "spill of coffee or red wine.",
+            "A type of coffee that is made by mixing instant coffee with hot "
+            "water.",
+            "A type of coffee that is made by pouring hot water over coffee "
+            "grounds in a filter.",
+            "A pattern left by a particle-laden liquid after it evaporates, named "
+            "for the characteristic ring-like deposit along the perimeter of a "
+            "spill of coffee or red wine.",
+        ],
+    },
 ]
 
 if st.button("Load an example question"):
-    st.session_state["prompt"] = EXAMPLE_PROMPT
-    for letter, text in zip(LETTERS, EXAMPLE_OPTIONS):
+    # Pick at random, but never the same example twice in a row, so repeated
+    # clicks actually show different questions during a demo.
+    pool = [e for e in EXAMPLES if e["id"] != st.session_state.get("example_id")]
+    example = random.choice(pool or EXAMPLES)
+    st.session_state["example_id"] = example["id"]
+    st.session_state["example_answer"] = example["answer"]
+    st.session_state["prompt"] = example["prompt"]
+    for letter, text in zip(LETTERS, example["options"]):
         st.session_state[f"opt_{letter}"] = text
+
+if st.session_state.get("example_id"):
+    st.caption(
+        f"Loaded train.csv row {st.session_state['example_id']} verbatim. "
+        f"Its labelled answer is **{st.session_state['example_answer']}** - "
+        "press Solve and compare."
+    )
 
 prompt = st.text_area("Question", key="prompt", height=90,
                       placeholder="Type the question here...")
