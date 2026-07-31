@@ -185,22 +185,158 @@ EXAMPLES = [
     },
 ]
 
-if st.button("Load an example question"):
-    # Pick at random, but never the same example twice in a row, so repeated
-    # clicks actually show different questions during a demo.
-    pool = [e for e in EXAMPLES if e["id"] != st.session_state.get("example_id")]
-    example = random.choice(pool or EXAMPLES)
-    st.session_state["example_id"] = example["id"]
-    st.session_state["example_answer"] = example["answer"]
+
+# Five questions from test.csv that appear NOWHERE in train.csv - not the same
+# prompt, not the same option set. Only 38 of the 500 test questions qualify
+# (7.6%); the rest reuse training material. The deployed model was trained on
+# all 2,000 training rows, so these are the only genuinely unseen questions
+# available. Their labels are not public, so there is nothing to check against -
+# the point is the confidence spread, which is what MAP@3's top-3 exists for.
+UNSEEN_EXAMPLES = [
+    {
+        "id": 6,
+        "prompt": "Choose the correct answer: What is the Evans balance? from the "
+            "following choices.",
+        "options": [
+            "The Evans balance is a mechanism used to measure the change in "
+            "weight of a sample when an electromagnet is turned on, which is "
+            "proportional to the susceptibility.",
+            "The Evans balance is a framework used to measure the dependence of "
+            "the NMR frequency of a liquid sample on its shape or orientation to "
+            "determine its susceptibility.",
+            "The Evans balance is a mechanism used to measure the magnetic field "
+            "distortion around a sample immersed in water inside an MR scanner to "
+            "determine its susceptibility.",
+            "The Evans balance is a structure used to measure the susceptibility "
+            "of a sample by measuring the force change on a strong compact magnet "
+            "upon insertion of the sample.",
+            "The Evans balance is a structure used to measure the magnetic "
+            "susceptibility of most crystals, which is not a scalar quantity.",
+        ],
+    },
+    {
+        "id": 75,
+        "prompt": "Determine the correct option: What is the reason for heating metals "
+            "to a temperature just above the upper critical temperature? from the "
+            "following choices.",
+        "options": [
+            "To prevent the grains of solution from growing too large, which "
+            "minimizes mechanical properties such as toughness, shear strength, "
+            "and tensile strength.",
+            "To boost the size of the grains of solution, which enhances "
+            "mechanical properties such as toughness, shear strength, and tensile "
+            "strength.",
+            "To prevent the grains of solution from growing too large, which "
+            "enhances mechanical properties such as toughness, shear strength, "
+            "and tensile strength.",
+            "To prevent the grains of solution from growing too small, which "
+            "enhances mechanical properties such as toughness, shear strength, "
+            "and tensile strength.",
+            "To raise the size of the grains of solution, which reduces "
+            "mechanical properties such as toughness, shear strength, and tensile "
+            "strength.",
+        ],
+    },
+    {
+        "id": 80,
+        "prompt": "Which of the following is correct? What is the reason for heating "
+            "metals to a temperature just above the upper critical temperature? "
+            "among the listed options.",
+        "options": [
+            "To prevent the grains of solution from growing too large, which "
+            "reduces mechanical properties such as toughness, shear strength, and "
+            "tensile strength.",
+            "To boost the size of the grains of solution, which enhances "
+            "mechanical properties such as toughness, shear strength, and tensile "
+            "strength.",
+            "To prevent the grains of solution from growing too large, which "
+            "enhances mechanical properties such as toughness, shear strength, "
+            "and tensile strength.",
+            "To prevent the grains of solution from growing too small, which "
+            "enhances mechanical properties such as toughness, shear strength, "
+            "and tensile strength.",
+            "To raise the size of the grains of solution, which minimizes "
+            "mechanical properties such as toughness, shear strength, and tensile "
+            "strength.",
+        ],
+    },
+    {
+        "id": 126,
+        "prompt": "Which of the following is correct? What happens to an initially "
+            "inhomogeneous physical framework that is isolated by a thermodynamic "
+            "operation? based on the given context.",
+        "options": [
+            "It will change its internal state only if it is composed of a single "
+            "submechanism and has internal walls.",
+            "It will change its internal state only if it is composed of several "
+            "substructures separated from each other by walls.",
+            "It will remain in its initial state indefinitely.",
+            "It will generally change its internal state over time.",
+            "It will change its internal state only if it is composed of a single "
+            "subframework.",
+        ],
+    },
+    {
+        "id": 145,
+        "prompt": "Determine the correct option: Which of the following statements is "
+            "true about the categorization of planetary structures according to "
+            "their orbital dynamics?",
+        "options": [
+            "Planetary frameworks cannot be categorized based on their orbital "
+            "dynamics.",
+            "Planetary mechanisms can be categorized as resonant, "
+            "non-resonant-interacting, hierarchical, or some combination of "
+            "these, but only based on the number of planets in the mechanism.",
+            "Planetary frameworks can only be categorized as resonant or "
+            "non-resonant-interacting.",
+            "Planetary frameworks can be categorized as resonant, "
+            "non-resonant-interacting, hierarchical, or some combination of "
+            "these.",
+            "Planetary frameworks can only be categorized as hierarchical or "
+            "non-hierarchical.",
+        ],
+    },
+]
+
+def _load(example, source, answer=None):
+    """Put an example into the input boxes and record what it was."""
+    pool_key = "example_id"
+    st.session_state[pool_key] = example["id"]
+    st.session_state["example_source"] = source
+    st.session_state["example_answer"] = answer
     st.session_state["prompt"] = example["prompt"]
     for letter, text in zip(LETTERS, example["options"]):
         st.session_state[f"opt_{letter}"] = text
 
-if st.session_state.get("example_id"):
+
+def _pick(pool):
+    """Random choice that never repeats the previous example."""
+    fresh = [e for e in pool if e["id"] != st.session_state.get("example_id")]
+    return random.choice(fresh or pool)
+
+
+left, right = st.columns(2)
+with left:
+    if st.button("Load a seen question", use_container_width=True):
+        chosen = _pick(EXAMPLES)
+        _load(chosen, "seen", chosen["answer"])
+with right:
+    if st.button("Load an unseen question", use_container_width=True):
+        _load(_pick(UNSEEN_EXAMPLES), "unseen")
+
+if st.session_state.get("example_source") == "seen":
     st.caption(
-        f"Loaded train.csv row {st.session_state['example_id']} verbatim. "
-        f"Its labelled answer is **{st.session_state['example_answer']}** - "
-        "press Solve and compare."
+        f"train.csv row {st.session_state['example_id']}, verbatim. The model was "
+        f"trained on this question, so expect a confident answer. Its labelled "
+        f"answer is **{st.session_state['example_answer']}** - press Solve and check."
+    )
+elif st.session_state.get("example_source") == "unseen":
+    st.caption(
+        f"test.csv row {st.session_state['example_id']}. This question appears "
+        "nowhere in the training data - neither the prompt nor the option set - so "
+        "the model is genuinely reasoning rather than recalling. Only 38 of the 500 "
+        "test questions qualify. Its label is not public, so watch the confidence "
+        "spread instead: that is what the top-3 of MAP@3 exists for."
     )
 
 prompt = st.text_area("Question", key="prompt", height=90,
